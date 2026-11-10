@@ -307,7 +307,8 @@ if (RECORD_VOD) { trans.mp4 = true; trans.mp4Flags = '[movflags=frag_keyframe+em
 
 const nms = new NodeMediaServer({
   rtmp: { port: RTMP_PORT, chunk_size: 60000, gop_cache: true, ping: 30, ping_timeout: 60 },
-  http: { port: 8000, mediaroot: MEDIA, allow_origin: '*' },
+  // Barras normales: el muxer "tee" de ffmpeg trata "\" como escape (problema en Windows)
+  http: { port: 8000, mediaroot: MEDIA.replace(/\\/g, '/'), allow_origin: '*' },
   trans: { ffmpeg: FFMPEG, tasks: [trans] },
   logType: 1,
 });
