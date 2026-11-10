@@ -27,7 +27,7 @@
 ## 2. Progreso (marca con [x] al terminar)
 - [x] Fase 0 · Verificar entorno (faltan Node y ffmpeg; pendiente de instalar con autorización)
 - [x] Fase 1 · Proyecto, dependencias y SPEC.md
-- [ ] Fase 2 · Base de datos (db.js)
+- [x] Fase 2 · Base de datos (db.js)
 - [ ] Fase 3 · Servidor (server.js, partes 1 y 2)
 - [ ] Fase 4 · Frontend (styles, common, index, channel, login, dashboard)
 - [ ] Fase 5 · Pruebas locales (lista de 10 verificaciones)
