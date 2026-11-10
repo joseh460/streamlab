@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StreamLab · Acceso</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="form-card">
+  <div class="tabs">
+    <button class="tab active" id="tab-login" type="button">Iniciar sesión</button>
+    <button class="tab" id="tab-register" type="button">Registrarse</button>
+  </div>
+  <form id="form" autocomplete="on">
+    <label for="username">Usuario</label>
+    <input id="username" name="username" autocomplete="username" required>
+    <label for="password">Contraseña</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" required>
+    <div class="muted" id="hint" style="font-size:12px;margin-top:6px"></div>
+    <div class="error" id="error"></div>
+    <div class="actions"><button class="btn btn-primary" id="submit" type="submit" style="width:100%">Entrar</button></div>
+  </form>
+</div>
+<script src="/common.js"></script>
+<script>
+let mode = 'login';
+const $ = (id) => document.getElementById(id);
+
+function setMode(m) {
+  mode = m;
+  $('tab-login').classList.toggle('active', m === 'login');
+  $('tab-register').classList.toggle('active', m === 'register');
+  $('submit').textContent = m === 'login' ? 'Entrar' : 'Crear cuenta';
+  $('password').autocomplete = m === 'login' ? 'current-password' : 'new-password';
+  $('hint').textContent = m === 'register' ? 'Usuario: 3-20 caracteres (minúsculas, números y _). Contraseña: mínimo 6.' : '';
+  $('error').textContent = '';
+}
+$('tab-login').onclick = () => setMode('login');
+$('tab-register').onclick = () => setMode('register');
+
+$('form').onsubmit = async (e) => {
+  e.preventDefault();
+  $('error').textContent = '';
+  $('submit').disabled = true;
+  try {
+    await api('/api/' + mode, { method: 'POST', body: { username: $('username').value, password: $('password').value } });
+    location.href = mode === 'register' ? '/dashboard.html' : '/';
+  } catch (err) {
+    $('error').textContent = err.message;
+  } finally {
+    $('submit').disabled = false;
+  }
+};
+
+(async () => {
+  await renderTopbar('');
+  setMode(location.hash === '#register' ? 'register' : 'login');
+})();
+window.addEventListener('hashchange', () => setMode(location.hash === '#register' ? 'register' : 'login'));
+</script>
+</body>
+</html>

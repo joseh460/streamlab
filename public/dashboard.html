@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StreamLab · Mi canal</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="layout">
+  <main class="main">
+    <h1>Panel del creador</h1>
+    <div class="dash-grid">
+      <section class="panel">
+        <h2>Información del stream</h2>
+        <div>Estado: <span class="status off" id="status">Desconectado</span></div>
+        <label for="title">Título</label>
+        <input id="title" maxlength="100">
+        <label for="category">Categoría</label>
+        <select id="category"></select>
+        <label for="bio">Descripción</label>
+        <textarea id="bio" maxlength="500"></textarea>
+        <div class="error" id="info-error"></div>
+        <div class="actions">
+          <button class="btn btn-primary" id="save">Guardar</button>
+          <a class="btn" id="view" href="#">Ver mi canal</a>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Conexión con OBS</h2>
+        <label for="rtmp">Servidor</label>
+        <div class="row"><input id="rtmp" readonly><button class="btn btn-sm" id="copy-rtmp">Copiar</button></div>
+        <label for="key">Clave de retransmisión</label>
+        <div class="row">
+          <input id="key" type="password" readonly>
+          <button class="btn btn-sm" id="show-key">Mostrar</button>
+          <button class="btn btn-sm" id="copy-key">Copiar</button>
+        </div>
+        <div class="actions"><button class="btn btn-danger" id="regen">Regenerar clave</button></div>
+        <div class="muted" style="font-size:13px;margin-top:8px">Nunca compartas tu clave. Al regenerarla, la anterior deja de funcionar.</div>
+        <ul class="tips">
+          <li>En OBS: Ajustes → Emisión → Servicio «Personalizado…».</li>
+          <li>Salida: codificador x264, tasa de bits 2500 kbps, intervalo de fotogramas clave 2 s.</li>
+          <li>Audio AAC 128 kbps. Resolución recomendada: 1280×720 a 30 fps.</li>
+        </ul>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="/common.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+let d = null;
+
+function copy(text, label) {
+  const done = () => toast(label + ' copiado');
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, () => toast('No se pudo copiar'));
+  else { // alternativa para http en servidores que no son localhost
+    const t = document.createElement('textarea');
+    t.value = text; document.body.appendChild(t); t.select();
+    try { document.execCommand('copy'); done(); } catch { toast('No se pudo copiar'); }
+    t.remove();
+  }
+}
+
+function fill() {
+  $('title').value = d.title;
+  $('bio').value = d.bio;
+  $('category').innerHTML = d.categories.map((c) => `<option ${c === d.category ? 'selected' : ''}>${esc(c)}</option>`).join('');
+  $('rtmp').value = d.rtmp_url;
+  $('key').value = d.obs_key;
+  $('view').href = '/c/' + d.username;
+  const s = $('status');
+  s.textContent = d.is_live ? 'EN VIVO' : 'Desconectado';
+  s.className = 'status ' + (d.is_live ? 'on' : 'off');
+}
+
+(async () => {
+  const user = await renderTopbar('dashboard');
+  if (!user) { location.href = '/login.html'; return; }
+  try { d = await api('/api/dashboard'); }
+  catch { location.href = '/login.html'; return; }
+  fill();
+
+  $('save').onclick = async () => {
+    $('info-error').textContent = '';
+    try {
+      d = await api('/api/dashboard', { method: 'PUT', body: { title: $('title').value, category: $('category').value, bio: $('bio').value } });
+      fill();
+      toast('Cambios guardados');
+    } catch (e) { $('info-error').textContent = e.message; }
+  };
+  $('copy-rtmp').onclick = () => copy($('rtmp').value, 'Servidor');
+  $('copy-key').onclick = () => copy($('key').value, 'Clave');
+  $('show-key').onclick = () => {
+    const k = $('key');
+    k.type = k.type === 'password' ? 'text' : 'password';
+    $('show-key').textContent = k.type === 'password' ? 'Mostrar' : 'Ocultar';
+  };
+  $('regen').onclick = async () => {
+    if (!confirm('¿Regenerar la clave? La clave actual dejará de funcionar y tendrás que actualizarla en OBS.')) return;
+    try {
+      const r = await api('/api/dashboard/regenerate-key', { method: 'POST' });
+      d.obs_key = r.obs_key; $('key').value = r.obs_key;
+      toast('Clave regenerada');
+    } catch (e) { toast(e.message); }
+  };
+  // Refresca el estado EN VIVO cada 10 s
+  setInterval(async () => { try { d.is_live = (await api('/api/dashboard')).is_live; fill2(); } catch {} }, 10000);
+  function fill2() {
+    const s = $('status');
+    s.textContent = d.is_live ? 'EN VIVO' : 'Desconectado';
+    s.className = 'status ' + (d.is_live ? 'on' : 'off');
+  }
+})();
+</script>
+</body>
+</html>
