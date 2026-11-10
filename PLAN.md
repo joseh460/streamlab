@@ -29,7 +29,7 @@
 - [x] Fase 1 · Proyecto, dependencias y SPEC.md
 - [x] Fase 2 · Base de datos (db.js)
 - [x] Fase 3 · Servidor (server.js, partes 1 y 2)
-- [ ] Fase 4 · Frontend (styles, common, index, channel, login, dashboard)
+- [x] Fase 4 · Frontend (styles, common, index, channel, login, dashboard)
 - [ ] Fase 5 · Pruebas locales (lista de 10 verificaciones)
 - [ ] Fase 6 · Paquete de despliegue para AWS (deploy/ y DEPLOY.md)
 - [ ] Fase 7 · Documentación final y entrega (README, PROMPTS_LOG, plantilla de reporte)
