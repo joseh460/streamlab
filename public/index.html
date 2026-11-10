@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StreamLab · Explorar</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main">
+    <h1 id="title">Explorar canales</h1>
+    <div class="chips" id="chips"></div>
+    <div class="grid" id="grid"></div>
+  </main>
+</div>
+<script src="/common.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const category = params.get('category') || '';
+const following = params.get('tab') === 'following';
+
+async function loadChips() {
+  const el = document.getElementById('chips');
+  if (following) { el.innerHTML = ''; return; }
+  try {
+    const cats = await api('/api/categories');
+    const total = cats.reduce((n, c) => n + c.live, 0);
+    el.innerHTML = `<a class="chip ${category ? '' : 'active'}" href="/">Todo<small>${total} en vivo</small></a>` +
+      cats.map((c) => `<a class="chip ${category === c.name ? 'active' : ''}" href="/?category=${encodeURIComponent(c.name)}">${esc(c.name)}<small>${c.live}</small></a>`).join('');
+  } catch { el.innerHTML = ''; }
+}
+
+async function loadGrid() {
+  const grid = document.getElementById('grid');
+  try {
+    const list = following
+      ? await api('/api/following')
+      : await api('/api/channels' + (category ? '?category=' + encodeURIComponent(category) : ''));
+    grid.innerHTML = list.length
+      ? list.map(cardHTML).join('')
+      : `<div class="empty">${following ? 'Aún no sigues a ningún canal.' : 'No hay canales en esta categoría.'}</div>`;
+  } catch (e) {
+    grid.innerHTML = `<div class="empty">${esc(e.status === 401 ? 'Inicia sesión para ver los canales que sigues.' : e.message)}</div>`;
+  }
+}
+
+function refresh() { loadChips(); loadGrid(); renderSidebar(document.getElementById('sidebar')); }
+
+(async () => {
+  await renderTopbar(following ? 'following' : 'explore');
+  document.getElementById('title').textContent = following ? 'Canales que sigues' : (category || 'Explorar canales');
+  refresh();
+  const socket = io();
+  socket.on('live', refresh);
+})();
+</script>
+</body>
+</html>
