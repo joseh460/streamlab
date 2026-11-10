@@ -15,6 +15,7 @@ Registro real, rellenado fase por fase. Si un dato no se conoce: "no registrado"
 | 6 | deploy/*.sh y DEPLOY.md | Instrucciones de la Fase 6 de PLAN.md (no son prompts numerados); setup-ec2.sh tomado del Anexo B del manual | Claude Sonnet 5.5 (Claude Code) | 1 | Ninguna en el contenido. Validado con bash -n y bytes CR=0; smoke-test.sh probado contra la app local (4 casos). Scripts de AWS NO probados contra AWS real. Se añadió .gitattributes (*.sh eol=lf). |
 | 5 | (pruebas, sin archivo nuevo) | Fase 5 de PLAN.md: ejecutar las 10 pruebas locales. No es un prompt numerado. | Claude Sonnet 5.5 (Claude Code) | 1 (tanda de pruebas repetida tras la corrección) | Fallo real: HLS no se generaba en Windows; 1 cambio mínimo en server.js. Una tanda de comandos mía falló por no tener `node` en el PATH de la shell y se repitió. |
 | 7 | README.md, REPORTE_PLANTILLA.md, este registro | Instrucciones de la Fase 7 de PLAN.md (no son prompts numerados) | Claude Sonnet 5.5 (Claude Code) | 1 | Ninguna. |
+| 5b | (pruebas de navegador, sin archivo nuevo) | Petición de la persona usuaria: "Probar en navegador" | Claude Sonnet 5.5 (Claude Code) | 1 | Sin cambios de código: Explorar, reproductor HLS, chat en 2 pestañas, 2 espectadores, seguir, panel, VOD, "desconectado" y reconexión automática verificados. |
 
 ## Notas del registro
 - Todo el código se generó en una sola conversación con Claude Code, siguiendo `PLAN.md`; los prompts 1 a 8 se tomaron de ese archivo (el texto exacto está allí).
@@ -22,4 +23,4 @@ Registro real, rellenado fase por fase. Si un dato no se conoce: "no registrado"
 - Instalaciones autorizadas por la persona usuaria durante la Fase 0: Node.js y ffmpeg con winget.
 - Ajustes manuales hechos por las personas del equipo: **no registrado** (rellenar a mano si hubo alguno).
 - Prompts que la persona usuaria escribió fuera de `PLAN.md` en esta conversación: solo las órdenes "continúa" entre fases y la autorización de instalar.
-- No se han probado en navegador: reproductor, chat y contador en pantalla (ver `PLAN.md`, Fase 5). No se han probado contra AWS real los scripts de `deploy/`.
+- Pruebas de navegador (Chromium integrado, después de la Fase 7): ver README. Sin probar: OBS real, Safari y móvil. No se han probado contra AWS real los scripts de `deploy/`.

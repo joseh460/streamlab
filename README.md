@@ -72,4 +72,4 @@ Ver **[DEPLOY.md](DEPLOY.md)**.
 
 ## Notas
 - `node-media-server@2.7.0` abre además un HTTP interno en el puerto 8000 (no se usa desde fuera).
-- Las pruebas de navegador (reproductor, chat y contador en pantalla) están pendientes de hacerse a mano; ver el estado en `PLAN.md`.
+- Probado en el navegador integrado de Claude (Chromium): Explorar, canal con video HLS, chat, contador de espectadores, seguir, panel, VOD y pantalla "desconectado". No se probó con OBS real, en Safari ni en móvil.

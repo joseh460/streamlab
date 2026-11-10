@@ -30,7 +30,7 @@
 - [x] Fase 2 · Base de datos (db.js)
 - [x] Fase 3 · Servidor (server.js, partes 1 y 2)
 - [x] Fase 4 · Frontend (styles, common, index, channel, login, dashboard)
-- [x] Fase 5 · Pruebas locales (lista de 10 verificaciones) (las de navegador quedan 👤 pendientes de probar por una persona)
+- [x] Fase 5 · Pruebas locales (lista de 10 verificaciones) (pruebas de navegador hechas en Chromium; falta confirmar con OBS real, y otros navegadores)
 - [x] Fase 6 · Paquete de despliegue para AWS (deploy/ y DEPLOY.md)
 - [x] Fase 7 · Documentación final y entrega (README, PROMPTS_LOG, plantilla de reporte)
 
