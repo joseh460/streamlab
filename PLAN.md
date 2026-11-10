@@ -28,7 +28,7 @@
 - [x] Fase 0 · Verificar entorno (faltan Node y ffmpeg; pendiente de instalar con autorización)
 - [x] Fase 1 · Proyecto, dependencias y SPEC.md
 - [x] Fase 2 · Base de datos (db.js)
-- [ ] Fase 3 · Servidor (server.js, partes 1 y 2)
+- [x] Fase 3 · Servidor (server.js, partes 1 y 2)
 - [ ] Fase 4 · Frontend (styles, common, index, channel, login, dashboard)
 - [ ] Fase 5 · Pruebas locales (lista de 10 verificaciones)
 - [ ] Fase 6 · Paquete de despliegue para AWS (deploy/ y DEPLOY.md)
