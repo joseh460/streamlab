@@ -22,7 +22,7 @@
         <h1 id="chan-title">Cargando…</h1>
         <div class="muted"><b id="chan-name"></b> · <span class="tag" id="chan-cat"></span>
           <span id="live-pill" class="live-pill hidden">EN VIVO</span>
-          <span id="viewers">0</span> espectadores · <span id="followers">0</span> seguidores</div>
+          <span id="viewers">0</span> <span id="viewers-label">espectadores</span> · <span id="followers">0</span> <span id="followers-label">seguidores</span></div>
       </div>
       <button class="btn btn-primary hidden" id="btn-follow">Seguir</button>
     </div>
@@ -88,6 +88,12 @@ function playLive() {
   }
 }
 
+// Muestra "1 espectador" / "2 espectadores" (singular y plural)
+function setCount(id, n, singular) {
+  $(id).textContent = n;
+  $(id + '-label').textContent = n === 1 ? singular : singular + 'es';
+}
+
 function renderHead() {
   document.title = `StreamLab · ${chan.username}`;
   $('chan-avatar').innerHTML = avatar(chan.username, 'lg');
@@ -95,8 +101,8 @@ function renderHead() {
   $('chan-name').textContent = chan.username;
   $('chan-cat').textContent = chan.category;
   $('live-pill').classList.toggle('hidden', !chan.is_live);
-  $('viewers').textContent = chan.viewers;
-  $('followers').textContent = chan.followers;
+  setCount('viewers', chan.viewers, 'espectador');
+  setCount('followers', chan.followers, 'seguidor');
   $('bio').textContent = chan.bio || 'Este canal aún no tiene descripción.';
   const btn = $('btn-follow');
   const own = me && me.username === chan.username;
@@ -168,7 +174,7 @@ function addLine(html) {
   socket.on('connect', () => socket.emit('join', username));
   socket.on('chat', (m) => addLine(`<div class="chat-msg"><b style="color:${esc(m.color)}">${esc(m.user)}</b>${esc(m.text)}</div>`));
   socket.on('chat:error', (t) => addLine(`<div class="chat-sys">⚠ ${esc(t)}</div>`));
-  socket.on('viewers', (n) => { $('viewers').textContent = n; $('chat-viewers').textContent = n + ' en línea'; if (chan) chan.viewers = n; });
+  socket.on('viewers', (n) => { setCount('viewers', n, 'espectador'); $('chat-viewers').textContent = n + ' en línea'; if (chan) chan.viewers = n; });
   socket.on('channel:update', (d) => {
     if (!chan) return;
     chan.title = d.title; chan.category = d.category; renderHead();
