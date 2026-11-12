@@ -47,6 +47,9 @@ sudo setcap 'cap_net_bind_service=+ep' "$(readlink -f "$(command -v node)")"
 echo "==> 6/6 PM2: mantener la app encendida y arrancarla con el servidor"
 command -v pm2 >/dev/null || sudo npm install -g pm2 --no-audit --no-fund >/dev/null
 pm2 delete streamlab >/dev/null 2>&1 || true
+# Cada espectador = varias conexiones abiertas: sube el límite de archivos abiertos (200+ espectadores)
+ulimit -n 65535 2>/dev/null || ulimit -n "$(ulimit -Hn)" 2>/dev/null || true
+echo "    límite de archivos abiertos: $(ulimit -n)"
 pm2 start npm --name streamlab --time -- start
 pm2 save
 sudo env PATH="$PATH" "$(command -v pm2)" startup systemd -u "$USER" --hp "$HOME" >/dev/null 2>&1 || echo "(aviso) pm2 startup no disponible en este sistema"

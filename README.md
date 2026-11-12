@@ -63,6 +63,8 @@ SPEC.md          Especificación técnica
 PLAN.md          Plan de trabajo por fases
 DEPLOY.md        Guía de despliegue en AWS
 PROMPTS_LOG.md   Registro del uso de IA
+loadtest/        Bots y script de prueba de carga
+bcrypt-pool.js   bcrypt en hilos de trabajo
 REPORTE_PLANTILLA.md  Esqueleto del reporte
 data/, media/    (generados, no se versionan) base de datos y video
 ```
@@ -73,3 +75,11 @@ Ver **[DEPLOY.md](DEPLOY.md)**.
 ## Notas
 - `node-media-server@2.7.0` abre además un HTTP interno en el puerto 8000 (no se usa desde fuera).
 - Probado en el navegador integrado de Claude (Chromium): Explorar, canal con video HLS, chat, contador de espectadores, seguir, panel, VOD y pantalla "desconectado". No se probó con OBS real, en Safari ni en móvil.
+
+## Prueba de carga (200+ espectadores)
+`loadtest/bots.js` simula espectadores (registro, Socket.io, chat y, opcionalmente, descarga HLS):
+```bash
+node loadtest/bots.js --url http://localhost:3000 --channel USUARIO --bots 200 --duration 60 --ramp 20 --chat 10000 --hls 0
+bash loadtest/run-local.sh 200 40 1 50 5000   # prueba aislada: levanta su propio servidor y transmite un canal de prueba
+```
+Resultados, límites y recomendaciones de instancia AWS: [DEPLOY.md](DEPLOY.md), sección 9.

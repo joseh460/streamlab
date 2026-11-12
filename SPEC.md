@@ -34,7 +34,7 @@ data/                   (generado) base de datos
   Así la URL pública (`/media/live/USUARIO/index.m3u8`) NO expone la clave.
 - `postPublish` → is_live=1, emitir `live` por socket, miniatura con ffmpeg cada 30 s (`thumb.jpg`).
 - `donePublish` → is_live=0, emitir `live`. Al arrancar el servidor: is_live=0 para todos.
-- Transmux sin recodificar (copy): HLS `[hls_time=2:hls_list_size=4:hls_flags=delete_segments]`
+- Transmux sin recodificar (copy): HLS `[hls_time=2:hls_list_size=4:hls_flags=delete_segments:hls_delete_threshold=10]`
   + VOD MP4 `[movflags=frag_keyframe+empty_moov]` (si `RECORD_VOD` ≠ false).
 
 ## API REST (JSON)
@@ -55,3 +55,11 @@ Espectadores = tamaño de la sala `ch:<usuario>`.
 Tema oscuro: fondo #0f1115, paneles #171a21/#1f232c, bordes #2a2f3a, acento #2ec4b6, coral #ff7a59,
 en vivo #ff3b5c. Fuente Inter/system-ui. Barra superior fija, sidebar de canales, tarjetas 16:9,
 página de canal con reproductor + chat lateral de 340 px. Responsive (<900 px oculta sidebar y chat).
+
+## Capacidad (requisito del profesor)
+- Objetivo: **200 espectadores simultáneos o más** (probados con bots: registro, socket, chat y descarga HLS).
+- bcrypt (10 rondas por defecto) corre en hilos de trabajo (`bcrypt-pool.js`), nunca en el hilo principal.
+  `BCRYPT_ROUNDS` y `BCRYPT_WORKERS` son opcionales.
+- La autenticación por cookie solo se evalúa en `/api` (no en `/media` ni en estáticos).
+- `/api/health` incluye `sockets`, `rss_mb`, `cpu_s` y `loop_p99_ms`.
+- Herramientas: `loadtest/bots.js` y `loadtest/run-local.sh`. Resultados y límites conocidos: `DEPLOY.md`, sección 9.

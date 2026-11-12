@@ -33,6 +33,7 @@ Abre Git Bash **dentro de la carpeta del proyecto** (`git clone <URL_DEL_REPO>` 
 | 2 | `bash deploy/aws-install.sh <URL_DEL_REPO>` | Entra por SSH, clona el repo e instala todo (`setup-ec2.sh`). Al final imprime la web y la URL de OBS. |
 | 3 | `bash deploy/smoke-test.sh <IP>` | Comprueba que el servidor responde. |
 | 4 | `bash deploy/smoke-test.sh <IP> USUARIO CLAVE` | (Opcional) Además transmite 15 s y comprueba el video. Necesita ffmpeg en tu PC. |
+| Opcional | `bash deploy/aws-resize.sh t3.large` | Cambia el tipo de instancia (p. ej. antes de la prueba de carga del profesor). La IP cambia. Ver sección 9. |
 | Final | `bash deploy/aws-destroy.sh` | **Elimina todo.** Pide escribir `ELIMINAR`. |
 
 Los scripts de AWS comprueban que `aws` funcione y que la región sea `us-east-1`; si no, se detienen con un mensaje claro. `aws-create.sh` **nunca sobrescribe**: si ya existe `~/streamlab-aws.env` o la llave, avisa y termina.
@@ -106,3 +107,53 @@ El puerto 8000 que abre internamente `node-media-server` **no** se abre en el gr
 
 ---
 Este proyecto no incluye Docker, HTTPS ni dominio propio (la web funciona en `http://`; algunos navegadores mostrarán "No seguro").
+
+## 9. Prueba de carga: 200 espectadores o más (bots del profesor)
+
+> **Qué está probado y qué no.** Las pruebas de carga se hicieron **en un PC con Windows**, con el servidor limitado a 2 núcleos, y **no en una EC2 real**. Los números de abajo son una guía, no una garantía. Antes de la fecha de la prueba hay que repetirla sobre la EC2 (ver "Cómo medir").
+
+### Qué se mejoró en el código para aguantar carga
+- **bcrypt en hilos aparte** (`bcrypt-pool.js`): antes cada registro/login congelaba el servidor ~80 ms (más en una `t3.micro`); 200 registros seguidos lo dejaban parado 16+ s. Se mantienen las 10 rondas de `SPEC.md`.
+- Los **archivos de video ya no consultan la base de datos** (la autenticación solo corre en `/api`).
+- Lista de canales en **una sola consulta** con micro-caché de 1 s; sentencias SQL reutilizadas; índices nuevos.
+- El contador de espectadores se envía **como máximo 2 veces por segundo** por canal (antes, una vez por cada entrada).
+- ffmpeg conserva en disco **10 segmentos HLS extra** (`hls_delete_threshold=10`), para que los clientes lentos no reciban 404.
+- Límite de archivos abiertos alto (`ulimit -n 65535`) en `setup-ec2.sh`, y `backlog` de 1024 conexiones.
+- `/api/health` ahora informa de `sockets`, `rss_mb`, `cpu_s` y `loop_p99_ms` (retraso del event loop: si pasa de ~500 ms, el servidor va justo).
+
+### Resultados medidos (Windows, servidor en 2 núcleos, bots en el mismo PC)
+| Escenario | Antes | Después |
+|---|---|---|
+| 200 bots (registro en avalancha 50/s, socket, chat cada 5 s, video HLS 2,5 Mbps): API de canal p50 / p95 | 3108 ms / 11 280 ms | 38 ms / 412 ms |
+| Retraso del event loop p99 (200 bots) | 1241 ms | 150–560 ms (según la corrida) |
+| Sockets conectados (200 bots) | 167–200 | 200/200 |
+| Registro p50 (200 simultáneos) | 4316 ms | ~1300–4300 ms (es CPU de bcrypt) |
+| 500 bots | — | **No aguanta limpio** con 2 núcleos: hay timeouts de registro y segmentos 404 |
+
+**El límite práctico medido está entre 200 y ~400 espectadores con 2 núcleos.** Si los bots no descargan video, aguanta bastante más.
+
+### Dos cosas que hay que saber
+1. **Registro masivo.** Cada hash bcrypt (10 rondas) cuesta ~80 ms de CPU de *un núcleo*. Con 2 vCPU se pueden crear unas 15–25 cuentas por segundo; 200 bots registrándose a la vez tardan varios segundos. Si los bots del profesor tienen un timeout corto, se puede bajar el coste con `BCRYPT_ROUNDS=8` en `.env` (4 veces más rápido; las cuentas ya creadas siguen funcionando). Eso **cambia el "10 rondas" de SPEC.md**: decídelo con tu compañero/a.
+2. **Ancho de banda.** Cada espectador de video consume el bitrate completo. 200 espectadores × 2,5 Mbps = **500 Mbps**; × 1,5 Mbps = 300 Mbps. Una `t3.micro` no sostiene eso. Recomendación para la fecha de la prueba: transmitir a **1000–1500 kbps** en OBS y usar una instancia de **2 vCPU con más red**, por ejemplo `t3.large` o `c6i.large` (verifica en la documentación de AWS el ancho de banda base de cada tipo y su precio).
+
+### Cómo cambiar de instancia solo para la prueba
+```bash
+bash deploy/aws-resize.sh t3.large    # antes de la prueba (la IP pública cambia)
+bash deploy/aws-resize.sh t3.micro    # después, para no gastar de más
+```
+(O elimina todo con `aws-destroy.sh` al terminar.) Este script **no se probó contra AWS real**.
+
+### Cómo medir tú mismo
+En tu PC, con `npm ci` hecho (incluye la herramienta de bots):
+```bash
+node loadtest/bots.js --url http://IP --channel USUARIO_QUE_TRANSMITE --bots 200 --duration 60 --ramp 20 --chat 10000 --hls 0
+```
+- `--hls 1` hace que cada bot descargue el video como un reproductor real: genera **cientos de Mbps de descarga**. Desde casa no lo aguantará tu internet; si hace falta probarlo, ejecuta los bots desde otra máquina con buena red.
+- Mientras corre, vigila el servidor: `curl http://IP/api/health` (mira `sockets`, `cpu_s` y `loop_p99_ms`) y `pm2 monit` por SSH.
+- Prueba local aislada (no toca tu servidor ni tu BD): `bash loadtest/run-local.sh 200 40 1 50 5000` (bots, segundos, video 0/1, bots por segundo, ms entre chats). En Windows, `SERVER_CORES=2` limita el servidor a 2 núcleos.
+
+### Costo aproximado de la prueba (verifica precios)
+La transferencia de salida es lo que más pesa: 200 espectadores a 1,5 Mbps durante 1 hora son ≈ **135 GB**. A unos 0,09 USD/GB tras el primer tramo gratuito, serían del orden de unos pocos USD. Súmale unas horas de instancia más grande. Esto alimenta la pregunta 6.3 de `REPORTE_PLANTILLA.md`.
+
+### Limitación conocida de las pruebas en Windows
+Al probar con cientos de bots en **Windows**, ffmpeg no puede reemplazar `index.m3u8` mientras se está leyendo, la lista de reproducción se queda congelada y aparecen errores 404 en segmentos. En **Linux (la EC2)** esto no ocurre porque se puede reemplazar un archivo abierto, pero **no está comprobado en Linux**: confírmalo con la prueba sobre la EC2.

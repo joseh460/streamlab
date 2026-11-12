@@ -2,7 +2,7 @@ const { DatabaseSync } = require('node:sqlite');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const dir = path.join(__dirname, 'data');
+const dir = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(__dirname, 'data');
 fs.mkdirSync(dir, { recursive: true });
 
 const db = new DatabaseSync(path.join(dir, 'streamlab.db'));
@@ -33,6 +33,9 @@ CREATE TABLE IF NOT EXISTS follows (
   channel_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   PRIMARY KEY (follower_id, channel_id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_follows_channel ON follows(channel_id);
+CREATE INDEX IF NOT EXISTS idx_users_live ON users(is_live);
 `);
 
 module.exports = db;
