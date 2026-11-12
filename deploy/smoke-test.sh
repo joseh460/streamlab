@@ -13,6 +13,7 @@ IP="${1:-}"
 USR="${2:-}"
 KEY="${3:-}"
 [ -n "$IP" ] || { echo "❌ Uso: bash deploy/smoke-test.sh <IP> [usuario clave]" >&2; exit 2; }
+KEY="${KEY##*key=}"   # acepta la clave completa del panel (usuario?key=sk_…) o solo sk_…
 [ -z "$USR" ] || [ -n "$KEY" ] || { echo "❌ Si das un usuario, da también la clave." >&2; exit 2; }
 command -v curl >/dev/null || { echo "❌ No se encontró curl." >&2; exit 2; }
 

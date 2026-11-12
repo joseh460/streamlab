@@ -21,7 +21,7 @@ curl -fs --max-time 10 "$URL/api/health" >/dev/null || { echo "❌ $URL/api/heal
 STREAMER="tx$(date +%s | tail -c 7)"
 curl -fs -c "$TMP/cj" -X POST -H 'content-type: application/json' -d "{\"username\":\"$STREAMER\",\"password\":\"123456\"}" "$URL/api/register" >/dev/null \
   || { echo "❌ No se pudo crear el usuario emisor"; exit 1; }
-KEY=$(curl -fs -b "$TMP/cj" "$URL/api/dashboard" | node -pe 'JSON.parse(require("fs").readFileSync(0)).obs_key')
+KEY=$(curl -fs -b "$TMP/cj" "$URL/api/dashboard" | node -pe 'JSON.parse(require("fs").readFileSync(0)).stream_key')
 
 if [ "$HLS" = 1 ]; then
   command -v "$FFMPEG_BIN" >/dev/null || { echo "❌ No hay ffmpeg para transmitir el canal de prueba"; exit 1; }

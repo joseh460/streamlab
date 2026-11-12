@@ -34,7 +34,7 @@ B="http://localhost:$PORT"
 curl -s -f "$B/api/health" >/dev/null || { echo "❌ El servidor de prueba no arrancó:"; tail -5 "$TMP/server.log"; exit 1; }
 
 curl -s -c "$TMP/cj" -X POST -H 'content-type: application/json' -d '{"username":"alice","password":"123456"}' "$B/api/register" >/dev/null
-KEY=$(curl -s -b "$TMP/cj" "$B/api/dashboard" | node -pe 'JSON.parse(require("fs").readFileSync(0)).obs_key')
+KEY=$(curl -s -b "$TMP/cj" "$B/api/dashboard" | node -pe 'JSON.parse(require("fs").readFileSync(0)).stream_key')
 if [ "$HLS" = 1 ]; then
   VB="${VIDEO_KBPS:-2500}"
   "$FFMPEG_BIN" -hide_banner -loglevel error -re -f lavfi -i "testsrc2=size=1280x720:rate=30" -f lavfi -i sine=frequency=440 \

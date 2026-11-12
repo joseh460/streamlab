@@ -32,13 +32,13 @@ Abre Git Bash **dentro de la carpeta del proyecto** (`git clone <URL_DEL_REPO>` 
 | 1 | `bash deploy/aws-create.sh` | Crea llave SSH, grupo de seguridad y la instancia `t3.micro` (tarda 2-3 min). Guarda los datos en `~/streamlab-aws.env`. |
 | 2 | `bash deploy/aws-install.sh <URL_DEL_REPO>` | Entra por SSH, clona el repo e instala todo (`setup-ec2.sh`). Al final imprime la web y la URL de OBS. |
 | 3 | `bash deploy/smoke-test.sh <IP>` | Comprueba que el servidor responde. |
-| 4 | `bash deploy/smoke-test.sh <IP> USUARIO CLAVE` | (Opcional) Además transmite 15 s y comprueba el video. Necesita ffmpeg en tu PC. |
+| 4 | `bash deploy/smoke-test.sh <IP> USUARIO CLAVE` | (Opcional; CLAVE puede ser la del panel completa o solo `sk_…`) Además transmite 15 s y comprueba el video. Necesita ffmpeg en tu PC. |
 | Opcional | `bash deploy/aws-resize.sh t3.large` | Cambia el tipo de instancia (p. ej. antes de la prueba de carga del profesor). La IP cambia. Ver sección 9. |
 | Final | `bash deploy/aws-destroy.sh` | **Elimina todo.** Pide escribir `ELIMINAR`. |
 
 Los scripts de AWS comprueban que `aws` funcione y que la región sea `us-east-1`; si no, se detienen con un mensaje claro. `aws-create.sh` **nunca sobrescribe**: si ya existe `~/streamlab-aws.env` o la llave, avisa y termina.
 
-**Probar la app:** abre `http://IP` en tu PC y en el celular (con datos móviles), regístrate, entra a **Mi canal** y copia el servidor y la clave a OBS (Ajustes → Emisión → Personalizado). Transmite, y pide a alguien que entre, chatee y te siga.
+**Probar la app:** abre `http://IP` en tu PC y en el celular (con datos móviles), regístrate, entra a **Mi canal** y copia el servidor y la clave **completa** (`usuario?key=sk_…`) a OBS (Ajustes → Emisión → Personalizado). Transmite, y pide a alguien que entre, chatee y te siga.
 
 ## 3. Capturas para el reporte
 Los scripts imprimen líneas `📸 CAPTURA n` en el momento exacto.

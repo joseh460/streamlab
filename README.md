@@ -34,14 +34,14 @@ npm start
 
 ### Transmitir
 1. Regístrate en `http://localhost:3000/login.html#register` y entra a **Mi canal**.
-2. Copia el **Servidor** y la **Clave** en OBS: Ajustes → Emisión → Servicio «Personalizado…». Recomendado: x264, 2500 kbps, fotogramas clave cada 2 s, AAC 128 kbps, 1280×720 a 30 fps.
+2. Copia el **Servidor** y la **Clave** en OBS (la clave del panel ya incluye tu usuario, con el formato `usuario?key=sk_…`: pégala **completa**): Ajustes → Emisión → Servicio «Personalizado…». Recomendado: x264, 2500 kbps, fotogramas clave cada 2 s, AAC 128 kbps, 1280×720 a 30 fps.
 3. Pulsa «Iniciar transmisión». El canal aparece EN VIVO en Explorar y en `http://localhost:3000/c/TU_USUARIO`.
 
-Sin OBS, con ffmpeg (sustituye `USUARIO` y `CLAVE`):
+Sin OBS, con ffmpeg (sustituye `CLAVE_COMPLETA_DEL_PANEL`):
 ```bash
 ffmpeg -re -f lavfi -i testsrc2=size=1280x720:rate=30 -f lavfi -i sine=frequency=440 \
   -c:v libx264 -preset veryfast -b:v 2500k -g 60 -pix_fmt yuv420p -c:a aac -b:a 128k \
-  -f flv "rtmp://localhost:1935/live/USUARIO?key=CLAVE"
+  -f flv "rtmp://localhost:1935/live/CLAVE_COMPLETA_DEL_PANEL"   # p. ej. alice?key=sk_…
 ```
 
 ## Variables de entorno (`.env`)

@@ -261,7 +261,8 @@ function dashboardOf(req, u) {
     category: u.category,
     bio: u.bio,
     is_live: u.is_live,
-    obs_key: u.stream_key,
+    stream_key: u.stream_key,
+    obs_key: `${u.username}?key=${u.stream_key}`, // lo que se pega en OBS como "Clave de retransmisión" (SPEC.md)
     rtmp_url: `rtmp://${PUBLIC_HOST || req.hostname}:${RTMP_PORT}/live`,
     categories: CATEGORIES,
   };
@@ -285,7 +286,7 @@ app.put('/api/dashboard', auth, (req, res) => {
 app.post('/api/dashboard/regenerate-key', auth, (req, res) => {
   const key = newKey();
   prep('UPDATE users SET stream_key = ? WHERE id = ?').run(key, req.user.id);
-  res.json({ obs_key: key });
+  res.json({ stream_key: key, obs_key: `${req.user.username}?key=${key}` });
 });
 
 const loopDelay = monitorEventLoopDelay({ resolution: 10 });
