@@ -3,7 +3,7 @@
 Para Windows + **Git Bash**. No hace falta tocar código: solo ejecutar los scripts de `deploy/` en orden.
 
 > ⚠ **Estado de las pruebas:** los scripts `aws-create.sh`, `aws-install.sh` y `aws-destroy.sh` **no han sido probados contra AWS real por quien los escribió** (no había cuenta AWS). Se validaron con `bash -n` (sintaxis). `smoke-test.sh` sí se probó contra una copia local de la app. Si un script falla, el mensaje dice qué revisar; copia el error completo y avisa a la Persona A.
-> `setup-ec2.sh` está tomado del Anexo B del manual y tampoco se ejecutó en una EC2 real.
+> `setup-ec2.sh` viene del Anexo B del manual. Se ejecutó completo en un **contenedor Ubuntu 24.04** (Docker): instala Node 22, ffmpeg, PM2, abre el puerto 80 y deja la app en línea. En ese entorno no había systemd (el arranque automático de PM2 no se pudo comprobar) ni swap real. Allí apareció y se corrigió un fallo (`$USER` sin definir). **No se ha ejecutado en una EC2 real.**
 
 ## 0. Requisitos
 - **Git Bash** (viene con Git para Windows) y **AWS CLI v2** instalada (`aws --version`).
@@ -110,7 +110,7 @@ Este proyecto no incluye Docker, HTTPS ni dominio propio (la web funciona en `ht
 
 ## 9. Prueba de carga: 200 espectadores o más (bots del profesor)
 
-> **Qué está probado y qué no.** Las pruebas de carga se hicieron **en un PC con Windows**, con el servidor limitado a 2 núcleos, y **no en una EC2 real**. Los números de abajo son una guía, no una garantía. Antes de la fecha de la prueba hay que repetirla sobre la EC2 (ver "Cómo medir").
+> **Qué está probado y qué no.** Las pruebas de carga se hicieron (a) en un **contenedor Ubuntu 24.04 limitado a 2 CPU y 4 GB** (lo más parecido a una EC2 de 2 vCPU que se pudo hacer sin AWS) y (b) en Windows con el servidor limitado a 2 núcleos. **No se hicieron en una EC2 real**: los números son una guía, no una garantía. Antes de la fecha de la prueba hay que repetirla sobre la EC2 (ver "Cómo medir"). Ojo: los CPU de una `t3` son más lentos y con créditos, así que espera algo peor que en el contenedor.
 
 ### Qué se mejoró en el código para aguantar carga
 - **bcrypt en hilos aparte** (`bcrypt-pool.js`): antes cada registro/login congelaba el servidor ~80 ms (más en una `t3.micro`); 200 registros seguidos lo dejaban parado 16+ s. Se mantienen las 10 rondas de `SPEC.md`.
@@ -121,7 +121,21 @@ Este proyecto no incluye Docker, HTTPS ni dominio propio (la web funciona en `ht
 - Límite de archivos abiertos alto (`ulimit -n 65535`) en `setup-ec2.sh`, y `backlog` de 1024 conexiones.
 - `/api/health` ahora informa de `sockets`, `rss_mb`, `cpu_s` y `loop_p99_ms` (retraso del event loop: si pasa de ~500 ms, el servidor va justo).
 
-### Resultados medidos (Windows, servidor en 2 núcleos, bots en el mismo PC)
+### Resultados medidos en Linux (Ubuntu 24.04, servidor a 2 CPU) — la referencia
+Servidor con PM2 desplegado con `setup-ec2.sh`; bots y emisor en otro contenedor. Video HLS + chat + registro de cada bot.
+
+| Escenario | Resultado |
+|---|---|
+| **200 bots**, registro en avalancha 50/s, video 2,5 Mbps, chat cada 5 s | **200/200 conectados, 0 errores.** API de canal p95 89 ms; segmentos HLS p95 456 ms; chat de ida y vuelta p95 56 ms; event loop p99 52 ms; 486 Mbps de video entregados |
+| **300 bots**, 20/s, video 1,5 Mbps, chat cada 10 s | **300/300, 0 errores.** API p95 207 ms; segmentos p95 617 ms; 384 Mbps |
+| 500 bots, 20/s, 1,5 Mbps, chat cada 10 s | **Falla**: 259/500 sockets, 98 timeouts de registro, timeouts en HLS |
+| 500 bots con `BCRYPT_ROUNDS=8` | Registro p50 **38 ms** (en vez de 6 s), pero sigue fallando: 390/500 sockets, timeouts de HLS |
+
+**Conclusión: con 2 CPU Linux se aguantan al menos 300 espectadores con video sin errores (margen de 1,5× sobre los 200 pedidos); a 500 no.** El techo es el proceso Node (un solo hilo, ~1 CPU) sirviendo ~400 Mbps de video y miles de mensajes de chat por segundo. Si los bots no descargan video, aguanta bastante más. Lo que sigue en orden de impacto, si hiciera falta más: servir `/media` con nginx, y más CPU.
+
+El punto débil con 2 CPU es el **registro**: con bcrypt de 10 rondas, 200–300 cuentas a la vez tardan p50 ≈ 4–6 s y p95 ≈ 9 s. Si los bots tienen un timeout corto, usa `BCRYPT_ROUNDS=8` (ver abajo).
+
+### Resultados medidos en Windows (servidor en 2 núcleos, bots en el mismo PC) — antes y después de las mejoras
 | Escenario | Antes | Después |
 |---|---|---|
 | 200 bots (registro en avalancha 50/s, socket, chat cada 5 s, video HLS 2,5 Mbps): API de canal p50 / p95 | 3108 ms / 11 280 ms | 38 ms / 412 ms |
@@ -130,7 +144,7 @@ Este proyecto no incluye Docker, HTTPS ni dominio propio (la web funciona en `ht
 | Registro p50 (200 simultáneos) | 4316 ms | ~1300–4300 ms (es CPU de bcrypt) |
 | 500 bots | — | **No aguanta limpio** con 2 núcleos: hay timeouts de registro y segmentos 404 |
 
-**El límite práctico medido está entre 200 y ~400 espectadores con 2 núcleos.** Si los bots no descargan video, aguanta bastante más.
+*(En Windows el límite salió más bajo por la limitación de abajo y porque bots y servidor compartían el PC; usa los resultados de Linux como referencia.)*
 
 ### Dos cosas que hay que saber
 1. **Registro masivo.** Cada hash bcrypt (10 rondas) cuesta ~80 ms de CPU de *un núcleo*. Con 2 vCPU se pueden crear unas 15–25 cuentas por segundo; 200 bots registrándose a la vez tardan varios segundos. Si los bots del profesor tienen un timeout corto, se puede bajar el coste con `BCRYPT_ROUNDS=8` en `.env` (4 veces más rápido; las cuentas ya creadas siguen funcionando). Eso **cambia el "10 rondas" de SPEC.md**: decídelo con tu compañero/a.
@@ -150,10 +164,11 @@ node loadtest/bots.js --url http://IP --channel USUARIO_QUE_TRANSMITE --bots 200
 ```
 - `--hls 1` hace que cada bot descargue el video como un reproductor real: genera **cientos de Mbps de descarga**. Desde casa no lo aguantará tu internet; si hace falta probarlo, ejecuta los bots desde otra máquina con buena red.
 - Mientras corre, vigila el servidor: `curl http://IP/api/health` (mira `sockets`, `cpu_s` y `loop_p99_ms`) y `pm2 monit` por SSH.
+- Prueba completa contra la EC2 (crea un usuario emisor, transmite un canal de prueba y lanza los bots): `bash loadtest/run-remote.sh http://IP IP 200 60 1 20 10000` (URL, host RTMP, bots, segundos, video 0/1, bots por segundo, ms entre chats; `VIDEO_KBPS=1500` por defecto). Necesita ffmpeg y buena red en la máquina que lanza los bots.
 - Prueba local aislada (no toca tu servidor ni tu BD): `bash loadtest/run-local.sh 200 40 1 50 5000` (bots, segundos, video 0/1, bots por segundo, ms entre chats). En Windows, `SERVER_CORES=2` limita el servidor a 2 núcleos.
 
 ### Costo aproximado de la prueba (verifica precios)
 La transferencia de salida es lo que más pesa: 200 espectadores a 1,5 Mbps durante 1 hora son ≈ **135 GB**. A unos 0,09 USD/GB tras el primer tramo gratuito, serían del orden de unos pocos USD. Súmale unas horas de instancia más grande. Esto alimenta la pregunta 6.3 de `REPORTE_PLANTILLA.md`.
 
 ### Limitación conocida de las pruebas en Windows
-Al probar con cientos de bots en **Windows**, ffmpeg no puede reemplazar `index.m3u8` mientras se está leyendo, la lista de reproducción se queda congelada y aparecen errores 404 en segmentos. En **Linux (la EC2)** esto no ocurre porque se puede reemplazar un archivo abierto, pero **no está comprobado en Linux**: confírmalo con la prueba sobre la EC2.
+Al probar con cientos de bots en **Windows**, ffmpeg no puede reemplazar `index.m3u8` mientras se está leyendo: la lista de reproducción se queda congelada y aparecen errores 404 en segmentos. **En Linux no ocurre** (comprobado en el contenedor Ubuntu: 0 errores con 200 y 300 bots), así que en la EC2 no debería verse.

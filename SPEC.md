@@ -62,4 +62,4 @@ página de canal con reproductor + chat lateral de 340 px. Responsive (<900 px o
   `BCRYPT_ROUNDS` y `BCRYPT_WORKERS` son opcionales.
 - La autenticación por cookie solo se evalúa en `/api` (no en `/media` ni en estáticos).
 - `/api/health` incluye `sockets`, `rss_mb`, `cpu_s` y `loop_p99_ms`.
-- Herramientas: `loadtest/bots.js` y `loadtest/run-local.sh`. Resultados y límites conocidos: `DEPLOY.md`, sección 9.
+- Herramientas: `loadtest/bots.js`, `loadtest/run-local.sh` (aislada, local) y `loadtest/run-remote.sh` (contra la EC2). Resultados y límites conocidos: `DEPLOY.md`, sección 9.

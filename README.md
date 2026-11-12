@@ -81,5 +81,6 @@ Ver **[DEPLOY.md](DEPLOY.md)**.
 ```bash
 node loadtest/bots.js --url http://localhost:3000 --channel USUARIO --bots 200 --duration 60 --ramp 20 --chat 10000 --hls 0
 bash loadtest/run-local.sh 200 40 1 50 5000   # prueba aislada: levanta su propio servidor y transmite un canal de prueba
+bash loadtest/run-remote.sh http://IP IP 200 60 1 20 10000   # contra un servidor ya desplegado (la EC2)
 ```
 Resultados, límites y recomendaciones de instancia AWS: [DEPLOY.md](DEPLOY.md), sección 9.

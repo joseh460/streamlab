@@ -52,7 +52,7 @@ ulimit -n 65535 2>/dev/null || ulimit -n "$(ulimit -Hn)" 2>/dev/null || true
 echo "    límite de archivos abiertos: $(ulimit -n)"
 pm2 start npm --name streamlab --time -- start
 pm2 save
-sudo env PATH="$PATH" "$(command -v pm2)" startup systemd -u "$USER" --hp "$HOME" >/dev/null 2>&1 || echo "(aviso) pm2 startup no disponible en este sistema"
+sudo env PATH="$PATH" "$(command -v pm2)" startup systemd -u "${USER:-$(id -un)}" --hp "$HOME" >/dev/null 2>&1 || echo "(aviso) pm2 startup no disponible en este sistema"
 
 sleep 3
 
